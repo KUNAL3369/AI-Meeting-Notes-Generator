@@ -6,6 +6,7 @@ type ActionItem = {
   task: string;
   owner: string;
   deadline: string;
+  done?: boolean;
 };
 
 type MeetingResult = {
@@ -26,19 +27,9 @@ type HistoryItem = {
 export default function Home() {
   const [transcript, setTranscript] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const [result, setResult] = useState<MeetingResult | null>(() => {
-    if (typeof window === "undefined") return null;
-    const params = new URLSearchParams(window.location.search);
-    const data = params.get("data");
-    if (!data) return null;
-
-    try {
-      return JSON.parse(atob(data));
-    } catch {
-      return null;
-    }
-  });
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [result, setResult] = useState<MeetingResult | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const [history, setHistory] = useState<HistoryItem[]>(() => {
     if (typeof window === "undefined") return [];
@@ -46,22 +37,47 @@ export default function Home() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const deleteHistory = (id: string) => {
-    const updated = history.filter((item) => item.id !== id);
+  const saveHistory = (updated: HistoryItem[]) => {
     setHistory(updated);
     localStorage.setItem("notes_history", JSON.stringify(updated));
   };
 
-  const renameHistory = (id: string) => {
-    const newName = prompt("Enter new name");
-    if (!newName) return;
+  const deleteHistory = (id: string) => {
+    const updated = history.filter((item) => item.id !== id);
+    saveHistory(updated);
 
-    const updated = history.map((item) =>
-      item.id === id ? { ...item, title: newName } : item
+    if (activeId === id) {
+      setActiveId(null);
+      setResult(null);
+      setTranscript("");
+    }
+  };
+
+  const renameHistory = (id: string) => {
+    const name = prompt("Rename chat");
+    if (!name) return;
+
+    const updated = history.map((h) =>
+      h.id === id ? { ...h, title: name } : h
     );
 
-    setHistory(updated);
-    localStorage.setItem("notes_history", JSON.stringify(updated));
+    saveHistory(updated);
+  };
+
+  const toggleActionItem = (index: number) => {
+    if (!result || !activeId) return;
+
+    const updatedItems = [...result.action_items];
+    updatedItems[index].done = !updatedItems[index].done;
+
+    const updatedResult = { ...result, action_items: updatedItems };
+    setResult(updatedResult);
+
+    const updatedHistory = history.map((h) =>
+      h.id === activeId ? { ...h, result: updatedResult } : h
+    );
+
+    saveHistory(updatedHistory);
   };
 
   const handleGenerate = async () => {
@@ -71,10 +87,7 @@ export default function Home() {
 
     const cleanedTranscript = Array.from(
       new Set(
-        transcript
-          .split("\n")
-          .map((line) => line.trim())
-          .filter(Boolean)
+        transcript.split("\n").map((l) => l.trim()).filter(Boolean)
       )
     ).join("\n");
 
@@ -97,6 +110,11 @@ export default function Home() {
 
       if (!parsed) return;
 
+      parsed.action_items = parsed.action_items.map((i) => ({
+        ...i,
+        done: false,
+      }));
+
       setResult(parsed);
 
       const newEntry: HistoryItem = {
@@ -108,10 +126,10 @@ export default function Home() {
       };
 
       const updated = [newEntry, ...history];
-      setHistory(updated);
-      localStorage.setItem("notes_history", JSON.stringify(updated));
-    } catch (error) {
-      console.error(error);
+      saveHistory(updated);
+      setActiveId(newEntry.id);
+    } catch (e) {
+      console.error(e);
     }
 
     setLoading(false);
@@ -124,9 +142,11 @@ export default function Home() {
         {/* HEADER */}
         <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
           <div>
-            <h1 className="font-semibold text-lg">NoteFlow AI</h1>
+            <h1 className="font-semibold text-lg">
+              AI Meeting Notes Generator
+            </h1>
             <p className="text-xs opacity-80">
-              Turn meeting transcripts into structured notes
+              NoteFlow AI • Turn meeting transcripts into structured notes
             </p>
           </div>
 
@@ -141,13 +161,12 @@ export default function Home() {
         </div>
 
         {/* CONTENT */}
-        <div className="bg-gray-100 dark:bg-gray-900 p-6">
+        <div className="bg-gray-100 dark:bg-gray-700 p-6">
           <div className="grid md:grid-cols-2 gap-6">
 
             {/* LEFT */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border dark:border-gray-700">
 
-              {/* INPUT HEADER */}
               <div className="flex justify-between items-center mb-2">
                 <h2 className="text-lg font-semibold text-black dark:text-white">
                   Paste Transcript
@@ -155,9 +174,17 @@ export default function Home() {
 
                 <button
                   onClick={() =>
-                    setTranscript(`John: Finalize landing page by Friday.
-Sarah: I'll handle design.
-Mike: I'll integrate API by Thursday.`)
+                    setTranscript(`John: We need to choose a design approach for the landing page.
+Sarah: Minimal design improves performance.
+Mike: Agreed.
+
+John: Let's finalize — we will use minimal design.
+
+Sarah: I'll implement design.
+Mike: I'll integrate API by Thursday.
+
+John: We'll deploy Friday.
+Everyone: Agreed.`)
                   }
                   className="text-xs px-2 py-1 rounded bg-gray-200 dark:bg-gray-700"
                 >
@@ -195,14 +222,18 @@ Mike: I'll integrate API by Thursday.`)
                   history.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between gap-2 p-2 rounded-lg border 
-                      bg-gray-50 dark:bg-gray-900 
-                      border-gray-300 dark:border-gray-600"
+                      className={`flex items-center justify-between gap-2 p-2 rounded-lg border 
+                      ${
+                        activeId === item.id
+                          ? "bg-purple-100 dark:bg-purple-900 border-purple-400"
+                          : "bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600"
+                      }`}
                     >
                       <button
                         onClick={() => {
                           setTranscript(item.transcript);
                           setResult(item.result);
+                          setActiveId(item.id);
                         }}
                         className="flex-1 text-left text-sm font-medium truncate text-black dark:text-white"
                       >
@@ -241,58 +272,47 @@ Mike: I'll integrate API by Thursday.`)
                 {result && (
                   <div className="flex gap-2">
 
-                    {/* COPY */}
-                    <button
-                      onClick={async () => {
-                        const text = `
-                        Summary:
-                        ${result.summary}
+                  <button
+                    onClick={async () => {
+                    const text = `
+                    Summary:
+                    ${result.summary}
 
-                        Key Points:
-                        ${result.key_points.join("\n")}
+                    Key Points:
+                    ${result.key_points.join("\n")}
 
-                        Decisions:
-                        ${result.decisions?.join("\n") || "None"}
+                    Decisions:
+                    ${result.decisions?.join("\n") || "None"}
 
-                        Action Items:
-                        ${result.action_items
-                        .map((i) => `${i.task} (${i.owner}, ${i.deadline})`)
-                        .join("\n")}
-                        `;
-                        await navigator.clipboard.writeText(text);
-                        alert("Copied!");
-                      }}
-                      className="text-xs px-3 py-1 border rounded"
-                    >
-                      Copy
-                    </button>
+                    Action Items:
+                    ${result.action_items
+                    .map((i) => `${i.task} (${i.owner}, ${i.deadline})`)
+                    .join("\n")}
+                    `;
 
-                    {/* EXPORT */}
+                    await navigator.clipboard.writeText(text);
+
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="text-xs px-3 py-1 border rounded bg-white dark:bg-gray-800"
+                  >
+                  {copied ? "Copied ✓" : "Copy"}
+                </button>
+
                     <button
                       onClick={() => {
-                        const text = `
-                        Summary:
-                        ${result.summary}
-
-                        Key Points:
-                        ${result.key_points.join("\n")}
-
-                        Decisions:
-                        ${result.decisions?.join("\n") || "None"}
-
-                        Action Items:
-                        ${result.action_items
-                        .map((i) => `${i.task} (${i.owner}, ${i.deadline})`)
-                        .join("\n")}
-                      `;
-                        const blob = new Blob([text], { type: "text/plain" });
+                        const blob = new Blob(
+                          [JSON.stringify(result, null, 2)],
+                          { type: "text/plain" }
+                        );
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement("a");
                         a.href = url;
                         a.download = "meeting-notes.txt";
                         a.click();
                       }}
-                      className="text-xs px-3 py-1 border rounded"
+                      className="text-xs px-3 py-1 border rounded bg-white dark:bg-gray-800"
                     >
                       Export
                     </button>
@@ -312,14 +332,14 @@ Mike: I'll integrate API by Thursday.`)
                     <h3 className="text-xs font-semibold text-gray-500 mb-1">
                       SUMMARY
                     </h3>
-                    <p className="text-sm">{result.summary}</p>
+                    <p>{result.summary}</p>
                   </div>
 
                   <div>
                     <h3 className="text-xs font-semibold text-gray-500 mb-1">
                       KEY POINTS
                     </h3>
-                    <ul className="list-disc pl-5 text-sm">
+                    <ul className="list-disc pl-5">
                       {result.key_points.map((p, i) => (
                         <li key={i}>{p}</li>
                       ))}
@@ -330,7 +350,7 @@ Mike: I'll integrate API by Thursday.`)
                     <h3 className="text-xs font-semibold text-gray-500 mb-1">
                       DECISIONS
                     </h3>
-                    <ul className="list-disc pl-5 text-sm">
+                    <ul className="list-disc pl-5">
                       {result.decisions?.length ? (
                         result.decisions.map((d, i) => (
                           <li key={i}>{d}</li>
@@ -353,13 +373,21 @@ Mike: I'll integrate API by Thursday.`)
                           className="flex justify-between items-start p-3 border rounded-lg"
                         >
                           <div>
-                            <p className="text-sm font-medium">{item.task}</p>
+                            <p className={`text-sm font-medium ${
+                              item.done ? "line-through opacity-50" : ""
+                            }`}>
+                              {item.task}
+                            </p>
                             <p className="text-xs text-gray-500">
-                              {item.owner || "unknown"} •{" "}
-                              {item.deadline || "unspecified"}
+                              {item.owner} • {item.deadline}
                             </p>
                           </div>
-                          <input type="checkbox" />
+
+                          <input
+                            type="checkbox"
+                            checked={item.done || false}
+                            onChange={() => toggleActionItem(i)}
+                          />
                         </div>
                       ))}
                     </div>
@@ -375,3 +403,4 @@ Mike: I'll integrate API by Thursday.`)
     </main>
   );
 }
+
