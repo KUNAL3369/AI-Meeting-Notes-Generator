@@ -1,6 +1,6 @@
 "use client";
 
-import {  useState } from "react";
+import { useState } from "react";
 
 type ActionItem = {
   task: string;
@@ -11,6 +11,7 @@ type ActionItem = {
 type MeetingResult = {
   summary: string;
   key_points: string[];
+  decisions?: string[];
   action_items: ActionItem[];
 };
 
@@ -26,34 +27,14 @@ export default function Home() {
   const [transcript, setTranscript] = useState("");
   const [loading, setLoading] = useState(false);
 
-   const deleteHistory = (id: string) => {
-        const updated = history.filter((item) => item.id !== id);
-        setHistory(updated);
-        localStorage.setItem("notes_history", JSON.stringify(updated));
-      };
-
-      const renameHistory = (id: string) => {
-        const newName = prompt("Enter new name");
-        if (!newName) return;
-
-        const updated = history.map((item) =>
-        item.id === id ? { ...item, title: newName } : item
-      );
-
-      setHistory(updated);
-      localStorage.setItem("notes_history", JSON.stringify(updated));
-      };
-
   const [result, setResult] = useState<MeetingResult | null>(() => {
     if (typeof window === "undefined") return null;
-
     const params = new URLSearchParams(window.location.search);
     const data = params.get("data");
-
     if (!data) return null;
 
     try {
-      return JSON.parse(atob(data)) as MeetingResult;
+      return JSON.parse(atob(data));
     } catch {
       return null;
     }
@@ -65,24 +46,42 @@ export default function Home() {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const deleteHistory = (id: string) => {
+    const updated = history.filter((item) => item.id !== id);
+    setHistory(updated);
+    localStorage.setItem("notes_history", JSON.stringify(updated));
+  };
+
+  const renameHistory = (id: string) => {
+    const newName = prompt("Enter new name");
+    if (!newName) return;
+
+    const updated = history.map((item) =>
+      item.id === id ? { ...item, title: newName } : item
+    );
+
+    setHistory(updated);
+    localStorage.setItem("notes_history", JSON.stringify(updated));
+  };
+
   const handleGenerate = async () => {
     if (!transcript.trim()) return;
 
     setLoading(true);
 
     const cleanedTranscript = Array.from(
-    new Set(
-      transcript
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean)
+      new Set(
+        transcript
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean)
       )
     ).join("\n");
 
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
-        body: JSON.stringify({ transcript: cleanedTranscript  }),
+        body: JSON.stringify({ transcript: cleanedTranscript }),
       });
 
       const data = await res.json();
@@ -108,12 +107,9 @@ export default function Home() {
         createdAt: new Date().toISOString(),
       };
 
-     
-
-      const updated: HistoryItem[] = [newEntry, ...history];
+      const updated = [newEntry, ...history];
       setHistory(updated);
       localStorage.setItem("notes_history", JSON.stringify(updated));
-
     } catch (error) {
       console.error(error);
     }
@@ -127,7 +123,12 @@ export default function Home() {
 
         {/* HEADER */}
         <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
-          <h1 className="font-semibold text-lg">NoteFlow AI</h1>
+          <div>
+            <h1 className="font-semibold text-lg">NoteFlow AI</h1>
+            <p className="text-xs opacity-80">
+              Turn meeting transcripts into structured notes
+            </p>
+          </div>
 
           <button
             onClick={() =>
@@ -145,9 +146,24 @@ export default function Home() {
 
             {/* LEFT */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border dark:border-gray-700">
-              <h2 className="text-lg font-semibold mb-3 text-black dark:text-white">
-                Paste Transcript
-              </h2>
+
+              {/* INPUT HEADER */}
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-lg font-semibold text-black dark:text-white">
+                  Paste Transcript
+                </h2>
+
+                <button
+                  onClick={() =>
+                    setTranscript(`John: Finalize landing page by Friday.
+Sarah: I'll handle design.
+Mike: I'll integrate API by Thursday.`)
+                  }
+                  className="text-xs px-2 py-1 rounded bg-gray-200 dark:bg-gray-700"
+                >
+                  Try Sample
+                </button>
+              </div>
 
               <textarea
                 value={transcript}
@@ -156,67 +172,67 @@ export default function Home() {
                 bg-white dark:bg-gray-900 
                 text-black dark:text-white 
                 border-gray-300 dark:border-gray-700"
-                placeholder="Paste your meeting transcript..."
+                placeholder="e.g. John: Let's finalize landing page by Friday..."
               />
 
               <button
                 onClick={handleGenerate}
-                className="mt-4 w-full py-2.5 rounded-lg text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90"
+                disabled={!transcript.trim() || loading}
+                className="mt-4 w-full py-2.5 rounded-lg text-white 
+                bg-gradient-to-r from-purple-600 to-indigo-600 
+                hover:opacity-90 disabled:opacity-50"
               >
                 {loading ? "Generating..." : "Generate Notes"}
               </button>
 
               {/* HISTORY */}
-              <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-              {history.length === 0 ? (
-        <p className="text-xs text-gray-400">No history yet</p>
-        ) : (
-        history.map((item) => (
-      <div
-        key={item.id}
-        className="flex items-center justify-between gap-2 p-2 rounded-lg border 
-        bg-gray-50 dark:bg-gray-900 
-        border-gray-300 dark:border-gray-600"
-      >
-        {/* CLICK AREA */}
-        <button
-          onClick={() => {
-            setTranscript(item.transcript);
-            setResult(item.result);
-          }}
-          className="flex-1 text-left text-sm font-medium truncate 
-          text-black dark:text-white"
-        >
-          {item.title}
-        </button>
+              <div className="mt-5 space-y-2 max-h-40 overflow-y-auto pr-1">
+                {history.length === 0 ? (
+                  <p className="text-xs text-gray-400">
+                    No notes yet. Generate your first one.
+                  </p>
+                ) : (
+                  history.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between gap-2 p-2 rounded-lg border 
+                      bg-gray-50 dark:bg-gray-900 
+                      border-gray-300 dark:border-gray-600"
+                    >
+                      <button
+                        onClick={() => {
+                          setTranscript(item.transcript);
+                          setResult(item.result);
+                        }}
+                        className="flex-1 text-left text-sm font-medium truncate text-black dark:text-white"
+                      >
+                        {item.title}
+                      </button>
 
-        {/* ACTIONS */}
-        <div className="flex gap-1">
-          <button
-            onClick={() => renameHistory(item.id)}
-            className="text-xs px-2 py-1 rounded 
-            bg-gray-200 dark:bg-gray-700 
-            hover:bg-gray-300 dark:hover:bg-gray-600"
-          >
-            Rename
-          </button>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => renameHistory(item.id)}
+                          className="text-xs px-2 py-1 rounded bg-gray-200 dark:bg-gray-700"
+                        >
+                          Rename
+                        </button>
 
-          <button
-            onClick={() => deleteHistory(item.id)}
-            className="text-xs px-2 py-1 rounded 
-            bg-red-500 text-white 
-            hover:bg-red-600"
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-      ))
-    )}
-    </div>
-    </div>
-      {/* RIGHT */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border dark:border-gray-700">
+                        <button
+                          onClick={() => deleteHistory(item.id)}
+                          className="text-xs px-2 py-1 rounded bg-red-500 text-white"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* RIGHT */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border dark:border-gray-700">
+
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold text-black dark:text-white">
                   Meeting Notes
@@ -228,88 +244,100 @@ export default function Home() {
                     {/* COPY */}
                     <button
                       onClick={async () => {
-                        try {
-                          const text = `
-Summary:
-${result.summary}
+                        const text = `
+                        Summary:
+                        ${result.summary}
 
-Key Points:
-${result.key_points.join("\n")}
+                        Key Points:
+                        ${result.key_points.join("\n")}
 
-Action Items:
-${result.action_items
-  .map(
-    (i) => `${i.task} (${i.owner}, ${i.deadline})`
-  )
-  .join("\n")}
-`;
-                          await navigator.clipboard.writeText(text);
-                          alert("Copied!");
-                        } catch {
-                          alert("Copy failed");
-                        }
+                        Decisions:
+                        ${result.decisions?.join("\n") || "None"}
+
+                        Action Items:
+                        ${result.action_items
+                        .map((i) => `${i.task} (${i.owner}, ${i.deadline})`)
+                        .join("\n")}
+                        `;
+                        await navigator.clipboard.writeText(text);
+                        alert("Copied!");
                       }}
-                      className="text-xs px-3 py-1 border rounded 
-                      bg-white dark:bg-gray-800 
-                      text-black dark:text-white 
-                      border-gray-300 dark:border-gray-600 
-                      hover:bg-gray-100 dark:hover:bg-gray-700"
+                      className="text-xs px-3 py-1 border rounded"
                     >
                       Copy
                     </button>
 
-                    {/* SHARE */}
+                    {/* EXPORT */}
                     <button
                       onClick={() => {
-                        const data = btoa(JSON.stringify(result));
-                        const url = `${window.location.origin}?data=${data}`;
-                        navigator.clipboard.writeText(url);
-                        alert("Share link copied!");
+                        const text = `
+                        Summary:
+                        ${result.summary}
+
+                        Key Points:
+                        ${result.key_points.join("\n")}
+
+                        Decisions:
+                        ${result.decisions?.join("\n") || "None"}
+
+                        Action Items:
+                        ${result.action_items
+                        .map((i) => `${i.task} (${i.owner}, ${i.deadline})`)
+                        .join("\n")}
+                      `;
+                        const blob = new Blob([text], { type: "text/plain" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = "meeting-notes.txt";
+                        a.click();
                       }}
-                      className="text-xs px-3 py-1 border rounded 
-                      bg-white dark:bg-gray-800 
-                      text-black dark:text-white 
-                      border-gray-300 dark:border-gray-600 
-                      hover:bg-gray-100 dark:hover:bg-gray-700"
+                      className="text-xs px-3 py-1 border rounded"
                     >
-                      Share
+                      Export
                     </button>
 
                   </div>
                 )}
               </div>
 
-              {/* LOADING */}
-              {loading ? (
-                <div className="space-y-4 animate-pulse">
-                  <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
-                  <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-full"></div>
-                  <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-5/6"></div>
-                </div>
-              ) : !result ? (
+              {!result ? (
                 <p className="text-gray-400 text-sm">
-                  Output will appear here...
+                  Paste a meeting transcript on the left and generate structured notes here.
                 </p>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-8">
 
                   <div>
                     <h3 className="text-xs font-semibold text-gray-500 mb-1">
                       SUMMARY
                     </h3>
-                    <p className="text-sm text-black dark:text-white">
-                      {result.summary}
-                    </p>
+                    <p className="text-sm">{result.summary}</p>
                   </div>
 
                   <div>
                     <h3 className="text-xs font-semibold text-gray-500 mb-1">
                       KEY POINTS
                     </h3>
-                    <ul className="list-disc pl-5 text-sm text-black dark:text-white">
-                      {result.key_points.map((point, i) => (
-                        <li key={i}>{point}</li>
+                    <ul className="list-disc pl-5 text-sm">
+                      {result.key_points.map((p, i) => (
+                        <li key={i}>{p}</li>
                       ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xs font-semibold text-gray-500 mb-1">
+                      DECISIONS
+                    </h3>
+                    <ul className="list-disc pl-5 text-sm">
+                      {result.decisions?.length ? (
+                        result.decisions.map((d, i) => (
+                          <li key={i}>{d}</li>
+                        ))
+                      ) : (
+                        <li className="text-gray-400">No decisions</li>
+                      )}
                     </ul>
                   </div>
 
@@ -322,14 +350,16 @@ ${result.action_items
                       {result.action_items.map((item, i) => (
                         <div
                           key={i}
-                          className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900 border dark:border-gray-700"
+                          className="flex justify-between items-start p-3 border rounded-lg"
                         >
-                          <p className="text-sm font-medium text-black dark:text-white">
-                            {item.task}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Owner: {item.owner || "unknown"} • Deadline: {item.deadline || "unspecified"}
-                          </p>
+                          <div>
+                            <p className="text-sm font-medium">{item.task}</p>
+                            <p className="text-xs text-gray-500">
+                              {item.owner || "unknown"} •{" "}
+                              {item.deadline || "unspecified"}
+                            </p>
+                          </div>
+                          <input type="checkbox" />
                         </div>
                       ))}
                     </div>
