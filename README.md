@@ -1,68 +1,99 @@
-# 🚀 AI Meeting Notes Generator (NoteFlow AI)
+<div align="center">
 
-🔗 **Live Demo:** [https://note-flow-ai-three.vercel.app/](https://note-flow-ai-three.vercel.app/)
+# 🧠 NoteFlow AI — AI Meeting Notes Generator
+
+**A real-time productivity tool that converts raw meeting transcripts into structured, actionable notes.**
+
+Built to demonstrate how AI can be shaped into a usable product — not just a prompt and a response.
+
+[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Visit%20Site-brightgreen?style=for-the-badge)](https://note-flow-ai-three.vercel.app/)
+[![Next.js](https://img.shields.io/badge/Next.js-App%20Router-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![OpenAI](https://img.shields.io/badge/OpenAI%20%2F%20Groq-AI%20Powered-412991?style=for-the-badge&logo=openai&logoColor=white)](https://openai.com/)
+[![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://note-flow-ai-three.vercel.app/)
+
+</div>
 
 ---
 
-## 📌 Overview
+## ⚡ Try It Right Now
 
-**AI Meeting Notes Generator** is a productivity tool that converts raw meeting transcripts into structured, actionable notes.
+No setup. No sign-up. Just paste a transcript and go.
 
-It transforms messy conversations into:
+| | |
+|---|---|
+| 🌐 **Live URL** | https://note-flow-ai-three.vercel.app/ |
 
-- ✅ Summary
-- ✅ Key Points
-- ✅ Decisions
-- ✅ Action Items (with owner + deadline)
+---
 
-Built with a strong focus on **real-world usability**, not just AI output.
+## 🧠 The Problem It Solves
+
+Meeting transcripts are messy, repetitive, and hard to act on. Teams waste time re-reading conversations to extract what was actually decided.
+
+NoteFlow AI turns raw discussion into structured output instantly:
+
+- 📋 **Summary** — what the meeting was about
+- 📌 **Key Points** — the important takeaways
+- ✅ **Decisions** — what was agreed upon
+- 👤 **Action Items** — who does what, by when
+
+---
+
+## 🔥 Key Highlights
+
+- Structured JSON output from AI — not freeform text
+- Transcript cleaning and deduplication before processing
+- Persistent history with rename, delete, and active highlighting
+- Interactive action item checkboxes for post-meeting tracking
 
 ---
 
 ## ✨ Features
 
-- 🧠 AI-powered summarization using structured JSON output
-- 🧹 Transcript cleaning + deduplication for better accuracy
-- 📋 Copy & Export meeting notes instantly
-- 🕘 Persistent history (localStorage)
-- 💬 Chat-style history selection with active highlighting
-- ✏️ Rename & delete past notes
-- ✅ Interactive action items (checkbox tracking)
-- 🌙 Dark mode support
-- ⚡ Fast, clean UI for quick usage
-
----
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
+| Feature | Description |
 |---|---|
-| Frontend | Next.js (App Router), React, TypeScript |
-| Styling | Tailwind CSS |
-| AI Integration | OpenAI / Groq API |
-| State Management | React Hooks + localStorage |
+| 🧠 **AI Summarization** | Structured JSON output via OpenAI / Groq API |
+| 🧹 **Transcript Cleaning** | Deduplication and normalization before sending to AI |
+| 📋 **Copy & Export** | Instantly copy or export generated notes |
+| 🕘 **Persistent History** | Notes saved locally with chat-style history panel |
+| ✏️ **Rename & Delete** | Full control over past note sessions |
+| ✅ **Action Item Tracking** | Interactive checkboxes per action item |
+| 🌙 **Dark Mode** | Full dark mode support |
+| ⚡ **Fast UI** | Clean, minimal interface built for quick usage |
 
 ---
 
-## 🧠 How It Works
+## 🏗️ How It Works
 
-1. User pastes meeting transcript
-2. Input is cleaned (deduplicated lines)
-3. Sent to AI with strict structured prompt
-4. AI returns JSON response
-5. UI parses and displays:
-   - Summary
-   - Key Points
-   - Decisions
-   - Action Items
-6. Result is saved to history for later use
+```
+User pastes meeting transcript
+        │
+        ▼
+Input cleaned (deduplication + normalization)
+        │
+        ▼
+Strict structured prompt sent to AI (OpenAI / Groq)
+        │
+        ▼
+AI returns JSON response
+        │
+        ▼
+UI parses and renders:
+  ├── Summary
+  ├── Key Points
+  ├── Decisions
+  └── Action Items (owner + deadline + checkbox)
+        │
+        ▼
+Result saved to localStorage history
+```
 
 ---
 
-## 📷 Example Output
+## 📷 Example
 
 **Input:**
-
 ```
 John: We should use minimal design.
 Sarah: That improves performance.
@@ -71,10 +102,9 @@ John: Agreed. Let's deploy Friday.
 ```
 
 **Output:**
-
 ```
 Summary:
-Minimal design chosen for better performance with API integration planned.
+Minimal design chosen for better performance, with API integration and deployment planned.
 
 Key Points:
 - Minimal design improves performance
@@ -85,54 +115,72 @@ Decisions:
 - Use minimal design approach
 
 Action Items:
-- Implement design (Sarah, unspecified)
-- Integrate API (Mike, Thursday)
-- Deploy landing page (John, Friday)
+- Integrate API → Mike, Thursday
+- Deploy landing page → John, Friday
 ```
 
 ---
 
-## 🧪 Local Setup
+## 🧰 Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js (App Router) + TypeScript |
+| Styling | Tailwind CSS |
+| AI Integration | OpenAI / Groq API |
+| State | React Hooks + localStorage |
+| Deployment | Vercel |
+
+---
+
+## 🚀 Run Locally
 
 ```bash
-git clone https://github.com/your-username/noteflow-ai.git
+git clone https://github.com/KUNAL3369/noteflow-ai.git
 cd noteflow-ai
 npm install
 npm run dev
 ```
 
-> Add your API key to a `.env.local` file:
-> ```
-> OPENROUTER_API_KEY=your_key_here
-> ```
+Add your API key to a `.env.local` file:
+
+```
+OPENROUTER_API_KEY=your_key_here
+```
+
+Open [http://localhost:3000](http://localhost:3000) and you're in.
 
 ---
 
-## 📈 What This Project Demonstrates
+## 🎯 Why This Project Matters
 
-- Building **AI-powered products**, not just integrations
-- Structuring unstructured data into usable formats
-- Strong **frontend UX + product thinking**
-- End-to-end development (idea → deployment)
+- Built to demonstrate AI integration as a product, not just a wrapper
+- Structures unstructured data into a consistent, usable format
+- Focuses on frontend UX and real-world utility, not just AI output
+- Shows end-to-end thinking — from raw input to deployed, usable tool
 
 ---
 
-## 🔮 Future Improvements
+## 🔮 Planned Improvements
 
-- [ ] User authentication (save notes in cloud)
-- [ ] Shareable links with public access
+- [ ] Cloud sync with user authentication
+- [ ] Shareable note links with public access
 - [ ] PDF export
 - [ ] Team collaboration features
 
 ---
 
-## 👨‍💻 Author
+## 📬 Let's Connect
 
-**Kunal Prabhakar** 
+🟢 **Open to:** Frontend Engineer · Product Engineer · Internal Tools Developer · Startup Software Engineer · AI Application Developer *(entry-level & early-stage startups)*
 
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Kunal%20Prabhakar-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/prabhakarkunal)
+[![Email](https://img.shields.io/badge/Email-kunal.prabhakar3082@gmail.com-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:kunal.prabhakar3082@gmail.com)
 
 ---
 
-## ⭐ If you found this useful
+<div align="center">
 
-Give it a star ⭐ on GitHub — it helps with visibility and means a lot!
+⭐ **Found this useful? Star the repo — it helps others discover it.**
+
+</div>
